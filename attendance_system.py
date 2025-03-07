@@ -6,15 +6,7 @@ import pandas as pd
 from datetime import datetime
 import smtplib
 from email.mime.text import MIMEText
-import tkinter as tk
-from tkinter import ttk, scrolledtext
 import numpy as np
-
-# Custom theme colors for a unique look
-BG_COLOR = "#2E2E2E"  # Dark gray background
-BUTTON_COLOR = "#4CAF50"  # Green buttons
-TEXT_COLOR = "#FFFFFF"  # White text
-LOG_BG = "#424242"  # Darker gray for log area
 
 # Function to encode faces and save them to a file
 def encode_faces(face_dir="faces/", output_file="face_encodings.pkl"):
@@ -71,44 +63,23 @@ def is_real_face(frame1, frame2):
     motion = cv2.countNonZero(thresh)
     return motion > 500
 
-# Self-registration function
-def self_register():
-    name = simple_interface.entry_name.get()
-    if not name:
-        simple_interface.log_area.insert(tk.END, "Please enter a name!\n")
-        return
-    simple_interface.log_area.insert(tk.END, f"Registering {name}...\n")
-    cap = cv2.VideoCapture(0)
-    ret, frame = cap.read()
-    if ret:
-        encoding = face_recognition.face_encodings(frame)[0]
-        with open("face_encodings.pkl", "rb") as f:
-            known_face_encodings, known_face_names = pickle.load(f)
-        known_face_encodings.append(encoding)
-        known_face_names.append(name)
-        with open("face_encodings.pkl", "wb") as f:
-            pickle.dump((known_face_encodings, known_face_names), f)
-        simple_interface.log_area.insert(tk.END, f"Registered {name} successfully!\n")
-    cap.release()
-    cv2.destroyAllWindows()
-
-# Attendance system function
+# Main attendance system function
 def run_attendance_system():
-    simple_interface.log_area.insert(tk.END, "Starting attendance system...\n")
+    print("Starting attendance system...")
     encoding_file = "face_encodings.pkl"
     if not os.path.exists(encoding_file):
         known_face_encodings, known_face_names = encode_faces()
         if known_face_encodings is None:
-            simple_interface.log_area.insert(tk.END, "Failed to encode faces.\n")
+            print("Failed to encode faces.")
             return
     else:
         with open(encoding_file, 'rb') as f:
             known_face_encodings, known_face_names = pickle.load(f)
-        simple_interface.log_area.insert(tk.END, f"Loaded {len(known_face_names)} face encodings.\n")
+        print(f"Loaded {len(known_face_names)} face encodings.")
 
     cap = cv2.VideoCapture(0)
     if not cap.isOpened():
-        simple_interface.log_area.insert(tk.END, "Error: Could not open webcam.\n")
+        print("Error: Could not open webcam.")
         return
 
     csv_file = "attendance.csv"
@@ -116,18 +87,18 @@ def run_attendance_system():
         attendance = pd.read_csv(csv_file)
     else:
         attendance = pd.DataFrame(columns=['Name', 'Time', 'Location'])
-    simple_interface.log_area.insert(tk.END, "Attendance dataframe initialized.\n")
+    print("Attendance dataframe initialized.")
 
     ret, prev_frame = cap.read()
     if not ret:
-        simple_interface.log_area.insert(tk.END, "Error: Failed to capture initial frame.\n")
+        print("Error: Failed to capture initial frame.")
         cap.release()
         return
 
     while True:
         ret, frame = cap.read()
         if not ret:
-            simple_interface.log_area.insert(tk.END, "Error: Failed to capture frame.\n")
+            print("Error: Failed to capture frame.")
             break
 
         if is_real_face(prev_frame, frame):
@@ -149,20 +120,20 @@ def run_attendance_system():
                         new_entry = pd.DataFrame([{'Name': name, 'Time': current_time, 'Location': location}])
                         attendance = pd.concat([attendance, new_entry], ignore_index=True)
                         attendance.to_csv(csv_file, index=False)
-                        simple_interface.log_area.insert(tk.END, f"Logged: {name} at {current_time} in {location}\n")
+                        print(f"Logged: {name} at {current_time} in {location}")
                         send_email(name, current_time)
 
                 else:
                     with open("unknown_faces.txt", "a") as f:
                         f.write(f"Unknown face detected at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-                    simple_interface.log_area.insert(tk.END, "Unknown face detected.\n")
+                    print("Unknown face detected.")
 
                 cv2.rectangle(frame, (left, top), (right, bottom), (0, 255, 0), 2)
                 cv2.putText(frame, name, (left, top-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
 
             prev_frame = frame.copy()
         else:
-            simple_interface.log_area.insert(tk.END, "Photo detected! Use a real face.\n")
+            print("Photo detected! Use a real face.")
 
         cv2.imshow('Attendance System', frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -170,43 +141,7 @@ def run_attendance_system():
 
     cap.release()
     cv2.destroyAllWindows()
-    simple_interface.log_area.insert(tk.END, f"Attendance saved to {csv_file}\n")
+    print(f"Attendance saved to {csv_file}")
 
-# Simple and unique interface class
-class SimpleInterface:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("Face Attendance System")
-        self.root.configure(bg=BG_COLOR)
-        self.root.geometry("400x500")
-
-        # Title Label
-        title = ttk.Label(root, text="Face Attendance", font=("Helvetica", 16, "bold"), foreground=TEXT_COLOR, background=BG_COLOR)
-        title.pack(pady=10)
-
-        # Name Entry
-        ttk.Label(root, text="Name:", foreground=TEXT_COLOR, background=BG_COLOR).pack()
-        self.entry_name = ttk.Entry(root)
-        self.entry_name.pack(pady=5)
-
-        # Buttons
-        ttk.Button(root, text="Start Attendance", command=run_attendance_system, style="Custom.TButton").pack(pady=5)
-        ttk.Button(root, text="Self-Register", command=self_register, style="Custom.TButton").pack(pady=5)
-
-        # Log Area
-        self.log_area = scrolledtext.ScrolledText(root, height=15, width=40, bg=LOG_BG, fg=TEXT_COLOR)
-        self.log_area.pack(pady=10)
-
-        # Custom style for buttons
-        style = ttk.Style()
-        style.configure("Custom.TButton", background=BUTTON_COLOR, foreground=TEXT_COLOR, font=("Helvetica", 10, "bold"))
-
-    def update_log(self, message):
-        self.log_area.insert(tk.END, message + "\n")
-        self.log_area.see(tk.END)
-
-# Initialize and run the interface
 if __name__ == "__main__":
-    root = tk.Tk()
-    simple_interface = SimpleInterface(root)
-    root.mainloop()
+    run_attendance_system()
