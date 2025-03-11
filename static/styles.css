@@ -4,11 +4,12 @@ body {
     padding: 0;
     background-color: #1a237e;
     color: #fff;
+    overflow-y: auto; /* Enable vertical scrolling for the entire page */
 }
 
 .container {
     display: flex;
-    height: 100vh;
+    min-height: 100vh;
 }
 
 .sidebar {
@@ -16,6 +17,8 @@ body {
     background-color: #0d1446;
     padding: 20px;
     box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
+    position: relative;
+    min-height: 100vh;
 }
 
 .sidebar h2 {
@@ -48,6 +51,7 @@ body {
     flex: 1;
     padding: 40px;
     background: linear-gradient(to bottom, #1a237e, #283593);
+    overflow-y: auto; /* Enable scrolling if content overflows */
 }
 
 .main-content h1 {
@@ -112,6 +116,22 @@ body {
     margin: 5px 0;
 }
 
+.attendance-camera {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.attendance-camera video {
+    border: 2px solid #4CAF50;
+    border-radius: 10px;
+    margin-bottom: 10px;
+}
+
+#attendance-status {
+    margin: 10px 0;
+    color: #fff;
+}
+
 .registration-form {
     position: fixed;
     top: 0;
@@ -133,6 +153,8 @@ body {
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
     color: #333;
     text-align: center;
+    max-height: 90vh;
+    overflow-y: auto;
 }
 
 .form-container h2 {
@@ -145,6 +167,10 @@ body {
     border-radius: 10px;
     overflow: hidden;
     margin-bottom: 20px;
+    width: 300px;
+    height: 300px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 form label {

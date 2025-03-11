@@ -14,7 +14,7 @@
             <ul>
                 <li><a href="#" onclick="showRegistrationForm()">Student Registration</a></li>
                 <li><a href="#">View/Authorize Students</a></li>
-                <li><a href="#">Mark Attendance</a></li>
+                <li><a href="#" onclick="startAttendance()">Mark Attendance</a></li>
                 <li><a href="#">Attendance Details</a></li>
             </ul>
         </div>
@@ -26,7 +26,7 @@
             <div class="button-container">
                 <button class="action-btn" onclick="showRegistrationForm()">Register Students <span>👤+</span></button>
                 <button class="action-btn" onclick="authorizeStudents()">Authorize Students <span>👥</span></button>
-                <button class="action-btn" onclick="markAttendance()">Mark Attendance <span>📸</span></button>
+                <button class="action-btn" onclick="startAttendance()">Mark Attendance <span>📸</span></button>
                 <button class="action-btn" onclick="viewAttendance()">View Attendance <span>📋</span></button>
             </div>
             <div class="attendance-log">
@@ -40,6 +40,12 @@
                         <p>No attendance logs yet.</p>
                     {% endif %}
                 </div>
+            </div>
+            <!-- Attendance Camera Feed (Hidden by default) -->
+            <div id="attendance-camera" class="attendance-camera" style="display: none;">
+                <video id="attendance-video" width="400" height="400" autoplay></video>
+                <p id="attendance-status"></p>
+                <button class="action-btn" onclick="stopAttendance()">Stop Attendance</button>
             </div>
         </div>
 
@@ -64,6 +70,7 @@
                 </form>
                 <button class="back-btn" onclick="hideRegistrationForm()">Back to Home</button>
                 <p id="successMessage" style="display: none; color: green;">Registration successful!</p>
+                <p id="errorMessage" style="display: none; color: red;"></p>
             </div>
         </div>
     </div>
@@ -73,32 +80,40 @@
         let video = document.getElementById('video');
         let canvas = document.getElementById('canvas');
         let context = canvas.getContext('2d');
+        let attendanceVideo = document.getElementById('attendance-video');
+        let attendanceStatus = document.getElementById('attendance-status');
+        let attendanceStream = null;
 
-        // Access webcam
+        // Access webcam for registration
         if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
             navigator.mediaDevices.getUserMedia({ video: true })
                 .then(stream => {
                     video.srcObject = stream;
                 })
                 .catch(err => {
-                    console.error("Webcam access error: ", err);
-                    alert("Could not access webcam.");
+                    console.error("Webcam access error for registration: ", err);
+                    alert("Could not access webcam for registration.");
                 });
         }
 
         // Show registration form
         function showRegistrationForm() {
-            document.getElementById('registration-form').style.display = 'block';
+            document.getElementById('registration-form').style.display = 'flex';
             document.querySelector('.main-content').style.display = 'none';
+            document.getElementById('successMessage').style.display = 'none';
+            document.getElementById('errorMessage').style.display = 'none';
         }
 
         // Hide registration form
         function hideRegistrationForm() {
             document.getElementById('registration-form').style.display = 'none';
             document.querySelector('.main-content').style.display = 'block';
+            if (video.srcObject) {
+                video.srcObject.getTracks().forEach(track => track.stop());
+            }
         }
 
-        // Handle form submission
+        // Handle registration form submission
         document.getElementById('registrationForm').addEventListener('submit', function(e) {
             e.preventDefault();
             context.drawImage(video, 0, 0, 300, 300);
@@ -114,25 +129,80 @@
             .then(data => {
                 if (data.success) {
                     document.getElementById('successMessage').style.display = 'block';
+                    document.getElementById('errorMessage').style.display = 'none';
                     setTimeout(hideRegistrationForm, 2000); // Hide after 2 seconds
                     this.reset();
                 } else {
-                    alert(data.message);
+                    document.getElementById('errorMessage').style.display = 'block';
+                    document.getElementById('errorMessage').innerText = data.message;
                 }
+            })
+            .catch(err => {
+                document.getElementById('errorMessage').style.display = 'block';
+                document.getElementById('errorMessage').innerText = "Error submitting form: " + err.message;
             });
         });
 
-        function authorizeStudents() {
-            alert("Authorize Students functionality to be implemented.");
+        // Start attendance
+        function startAttendance() {
+            document.getElementById('attendance-camera').style.display = 'block';
+            document.querySelector('.button-container').style.display = 'none';
+            document.querySelector('.attendance-log').style.display = 'none';
+
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                navigator.mediaDevices.getUserMedia({ video: true })
+                    .then(stream => {
+                        attendanceStream = stream;
+                        attendanceVideo.srcObject = stream;
+                        startAttendanceRecognition();
+                    })
+                    .catch(err => {
+                        console.error("Webcam access error for attendance: ", err);
+                        attendanceStatus.innerText = "Could not access webcam.";
+                    });
+            }
         }
 
-        function markAttendance() {
-            fetch('/start_attendance')
+        // Stop attendance
+        function stopAttendance() {
+            if (attendanceStream) {
+                attendanceStream.getTracks().forEach(track => track.stop());
+            }
+            document.getElementById('attendance-camera').style.display = 'none';
+            document.querySelector('.button-container').style.display = 'flex';
+            document.querySelector('.attendance-log').style.display = 'block';
+            attendanceStatus.innerText = "";
+            clearInterval(attendanceInterval); // Stop the recognition interval
+        }
+
+        let attendanceInterval;
+        function startAttendanceRecognition() {
+            attendanceInterval = setInterval(() => {
+                context.drawImage(attendanceVideo, 0, 0, 400, 400);
+                let imageData = canvas.toDataURL('image/jpeg');
+                let formData = new FormData();
+                formData.append('image', imageData);
+
+                fetch('/mark_attendance', {
+                    method: 'POST',
+                    body: formData
+                })
                 .then(response => response.json())
                 .then(data => {
-                    alert(data.message);
-                    location.reload(); // Refresh to update logs
+                    if (data.log) {
+                        let logContent = document.getElementById('log-content');
+                        logContent.innerHTML = data.log.map(log => `<p>${log}</p>`).join('') || '<p>No attendance logs yet.</p>';
+                        attendanceStatus.innerText = data.status || "";
+                    }
+                })
+                .catch(err => {
+                    attendanceStatus.innerText = "Error during attendance: " + err.message;
                 });
+            }, 1000); // Check every second
+        }
+
+        function authorizeStudents() {
+            alert("Authorize Students functionality to be implemented.");
         }
 
         function viewAttendance() {
