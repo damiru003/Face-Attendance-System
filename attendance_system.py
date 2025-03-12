@@ -7,6 +7,7 @@ from datetime import datetime
 import smtplib
 from email.mime.text import MIMEText
 import numpy as np
+import time
 
 # Function to encode faces and save them to a file
 def encode_faces(face_dir="faces/", output_file="face_encodings.pkl"):
@@ -70,7 +71,7 @@ def run_attendance_system():
     if not os.path.exists(encoding_file):
         known_face_encodings, known_face_names = encode_faces()
         if known_face_encodings is None:
-            print("Failed to encode faces.")
+            print("Failed to encode faces. Please register students first.")
             return
     else:
         with open(encoding_file, 'rb') as f:
@@ -84,9 +85,9 @@ def run_attendance_system():
 
     csv_file = "attendance.csv"
     if os.path.exists(csv_file):
-        attendance = pd.read_csv(csv_file)
+        attendance_df = pd.read_csv(csv_file)
     else:
-        attendance = pd.DataFrame(columns=['Name', 'Time', 'Location'])
+        attendance_df = pd.DataFrame(columns=['Name', 'Time', 'Location'])
     print("Attendance dataframe initialized.")
 
     ret, prev_frame = cap.read()
@@ -95,6 +96,7 @@ def run_attendance_system():
         cap.release()
         return
 
+    print("Press 'q' to quit the attendance system.")
     while True:
         ret, frame = cap.read()
         if not ret:
@@ -116,24 +118,19 @@ def run_attendance_system():
                     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                     location = "Office"
 
-                    if name not in attendance['Name'].values:
+                    if name not in attendance_df['Name'].values:
                         new_entry = pd.DataFrame([{'Name': name, 'Time': current_time, 'Location': location}])
-                        attendance = pd.concat([attendance, new_entry], ignore_index=True)
-                        attendance.to_csv(csv_file, index=False)
+                        attendance_df = pd.concat([attendance_df, new_entry], ignore_index=True)
+                        attendance_df.to_csv(csv_file, index=False)
                         print(f"Logged: {name} at {current_time} in {location}")
                         send_email(name, current_time)
 
-                else:
-                    with open("unknown_faces.txt", "a") as f:
-                        f.write(f"Unknown face detected at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-                    print("Unknown face detected.")
-
                 cv2.rectangle(frame, (left, top), (right, bottom), (0, 255, 0), 2)
-                cv2.putText(frame, name, (left, top-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
+                cv2.putText(frame, name, (left, top - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
 
             prev_frame = frame.copy()
         else:
-            print("Photo detected! Use a real face.")
+            cv2.putText(frame, "Photo detected! Use a real face.", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
 
         cv2.imshow('Attendance System', frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -143,5 +140,11 @@ def run_attendance_system():
     cv2.destroyAllWindows()
     print(f"Attendance saved to {csv_file}")
 
-if __name__ == "__main__":
+# Enhanced feature: Run attendance with a delay to allow camera setup
+def run_with_delay():
+    print("Waiting 2 seconds for camera setup...")
+    time.sleep(2)
     run_attendance_system()
+
+if __name__ == "__main__":
+    run_with_delay()
