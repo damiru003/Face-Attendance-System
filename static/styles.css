@@ -1,67 +1,186 @@
-body {
-    font-family: 'Arial', sans-serif;
+/* Reset and Font Imports */
+* {
     margin: 0;
     padding: 0;
-    background-color: #1a237e;
-    color: #fff;
-    overflow-y: auto;
+    box-sizing: border-box;
 }
 
+body {
+    font-family: 'Roboto', sans-serif;
+    overflow: hidden;
+    transition: background 0.5s ease, color 0.5s ease;
+}
+
+/* Cosmic Background with Animated Stars */
+.cosmic-background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    overflow: hidden;
+}
+
+.stars {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    animation: twinkle 5s infinite;
+}
+
+.stars:nth-child(1) {
+    background: url('https://www.transparenttextures.com/patterns/stardust.png');
+    animation-duration: 10s;
+}
+
+.stars:nth-child(2) {
+    background: url('https://www.transparenttextures.com/patterns/stardust.png');
+    animation-duration: 15s;
+    opacity: 0.5;
+}
+
+.stars:nth-child(3) {
+    background: url('https://www.transparenttextures.com/patterns/stardust.png');
+    animation-duration: 20s;
+    opacity: 0.3;
+}
+
+@keyframes twinkle {
+    0% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.05); }
+    100% { opacity: 0.3; transform: scale(1); }
+}
+
+/* Dark and Light Mode */
+body.dark-mode {
+    background: linear-gradient(135deg, #1a0033, #0d0d3d);
+    color: #e0e0ff;
+}
+
+body.light-mode {
+    background: linear-gradient(135deg, #f0e6ff, #d9e7ff);
+    color: #333;
+}
+
+/* Mode Toggle Button */
+.mode-toggle {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+}
+
+#mode-toggle-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 24px;
+    transition: transform 0.3s ease;
+}
+
+#mode-toggle-btn:hover {
+    transform: scale(1.2);
+}
+
+#mode-toggle-btn .icon {
+    display: inline-block;
+    animation: pulse 2s infinite;
+}
+
+/* Container */
 .container {
     display: flex;
     min-height: 100vh;
 }
 
+/* Sidebar */
 .sidebar {
     width: 250px;
-    background-color: #0d1446;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(10px);
     padding: 20px;
-    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
     position: relative;
-    min-height: 100vh;
+    transition: transform 0.5s ease;
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .sidebar {
+    background: rgba(0, 0, 0, 0.7);
+}
+
+body.light-mode .sidebar {
+    background: rgba(255, 255, 255, 0.5);
+}
+
+.sidebar:hover {
+    transform: translateX(10px);
 }
 
 .sidebar h2 {
+    font-family: 'Orbitron', sans-serif;
     font-size: 24px;
-    margin-bottom: 20px;
-    color: #fff;
+    margin-bottom: 30px;
 }
 
 .sidebar ul {
     list-style: none;
-    padding: 0;
 }
 
 .sidebar ul li {
-    margin: 15px 0;
+    margin: 20px 0;
 }
 
 .sidebar ul li a {
     color: #bbb;
     text-decoration: none;
     font-size: 16px;
-    transition: color 0.3s;
+    transition: color 0.3s ease;
 }
 
-.sidebar ul li a:hover {
+.glow-hover {
+    position: relative;
+    display: inline-block;
+}
+
+.glow-hover::after {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 2px;
+    bottom: -2px;
+    left: 0;
+    background: linear-gradient(90deg, #00ffff, #ff00ff);
+    transition: width 0.3s ease;
+}
+
+.glow-hover:hover::after {
+    width: 100%;
+}
+
+.glow-hover:hover {
     color: #fff;
 }
 
+/* Main Content */
 .main-content {
     flex: 1;
     padding: 40px;
-    background: linear-gradient(to bottom, #1a237e, #283593);
     overflow-y: auto;
 }
 
 .main-content h1 {
-    font-size: 32px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 36px;
     margin-bottom: 10px;
 }
 
-.main-content p {
+.sub-text {
     font-size: 16px;
-    color: #ddd;
+    opacity: 0.8;
     margin-bottom: 30px;
 }
 
@@ -71,100 +190,158 @@ body {
     flex-wrap: wrap;
 }
 
+/* Neon Glow Buttons */
 .action-btn {
-    background-color: #3f51b5;
-    color: #fff;
-    border: none;
+    background: transparent;
+    border: 2px solid transparent;
     padding: 15px 30px;
-    border-radius: 10px;
+    border-radius: 25px;
     font-size: 18px;
     cursor: pointer;
     display: flex;
     align-items: center;
     gap: 10px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-    transition: background-color 0.3s;
+    transition: all 0.3s ease;
 }
 
-.action-btn:hover {
-    background-color: #303f9f;
+body.dark-mode .action-btn.neon-glow {
+    color: #fff;
+    border-image: linear-gradient(45deg, #00ffff, #ff00ff) 1;
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.5), 0 0 20px rgba(255, 0, 255, 0.5);
+}
+
+body.light-mode .action-btn.neon-glow {
+    color: #333;
+    border-image: linear-gradient(45deg, #ff6f61, #ffd700) 1;
+    box-shadow: 0 0 10px rgba(255, 111, 97, 0.5), 0 0 20px rgba(255, 215, 0, 0.5);
+}
+
+.action-btn.neon-glow:hover {
+    transform: translateY(-5px);
+    animation: glow-pulse 1s infinite;
 }
 
 .action-btn span {
     font-size: 20px;
 }
 
+@keyframes glow-pulse {
+    0% { box-shadow: 0 0 10px rgba(0, 255, 255, 0.5), 0 0 20px rgba(255, 0, 255, 0.5); }
+    50% { box-shadow: 0 0 20px rgba(0, 255, 255, 0.8), 0 0 30px rgba(255, 0, 255, 0.8); }
+    100% { box-shadow: 0 0 10px rgba(0, 255, 255, 0.5), 0 0 20px rgba(255, 0, 255, 0.5); }
+}
+
+/* Glow Text */
+.glow-text {
+    position: relative;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+    animation: text-glow 2s infinite;
+}
+
+@keyframes text-glow {
+    0% { text-shadow: 0 0 10px rgba(255, 255, 255, 0.5); }
+    50% { text-shadow: 0 0 20px rgba(255, 255, 255, 0.8); }
+    100% { text-shadow: 0 0 10px rgba(255, 255, 255, 0.5); }
+}
+
+/* Attendance Log */
 .attendance-log {
     margin-top: 30px;
 }
 
-.attendance-log h2 {
-    font-size: 24px;
-    margin-bottom: 15px;
-}
-
-#log-content {
-    background-color: #0d1446;
+.log-box {
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(5px);
     padding: 15px;
-    border-radius: 10px;
+    border-radius: 15px;
     max-height: 200px;
     overflow-y: auto;
-    color: #bbb;
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-#log-content p {
+body.light-mode .log-box {
+    background: rgba(255, 255, 255, 0.3);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.log-entry {
     margin: 5px 0;
+    opacity: 0.8;
+    transition: opacity 0.3s ease;
 }
 
+.log-entry:hover {
+    opacity: 1;
+}
+
+/* Attendance Camera */
 .attendance-camera {
     margin-top: 20px;
     text-align: center;
 }
 
 .attendance-camera video {
-    border: 2px solid #4CAF50;
-    border-radius: 10px;
+    border: 2px solid;
+    border-image: linear-gradient(45deg, #00ffff, #ff00ff) 1;
+    border-radius: 15px;
     margin-bottom: 10px;
 }
 
-#attendance-status {
+.status-text {
     margin: 10px 0;
-    color: #fff;
 }
 
-.registration-form {
+/* Modals */
+.modal {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.7);
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 1000;
 }
 
-.form-container {
-    background-color: #fff;
+body.light-mode .modal {
+    background: rgba(255, 255, 255, 0.7);
+}
+
+.modal-content {
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(10px);
     padding: 20px;
-    border-radius: 10px;
-    width: 400px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-    color: #333;
-    text-align: center;
-    max-height: 90vh;
+    border-radius: 15px;
+    width: 80%;
+    max-width: 800px;
+    max-height: 80vh;
     overflow-y: auto;
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.form-container h2 {
-    margin-top: 0;
-    font-size: 24px;
+body.light-mode .modal-content {
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(0, 0, 0, 0.2);
 }
 
+/* Teleportation Animation for Modals */
+.teleport {
+    animation: teleport-in 0.5s ease-out;
+}
+
+@keyframes teleport-in {
+    0% { transform: scale(0); opacity: 0; }
+    50% { transform: scale(1.1); opacity: 0.5; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+/* Registration Form */
 .webcam-preview {
-    border: 2px solid #4CAF50;
-    border-radius: 10px;
+    border: 2px solid;
+    border-image: linear-gradient(45deg, #00ffff, #ff00ff) 1;
+    border-radius: 15px;
     overflow: hidden;
     margin-bottom: 20px;
     width: 300px;
@@ -183,68 +360,37 @@ form input {
     width: 100%;
     padding: 8px;
     margin-bottom: 10px;
-    border: 1px solid #ddd;
+    border: 1px solid rgba(255, 255, 255, 0.3);
     border-radius: 5px;
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+body.light-mode form input {
+    border: 1px solid rgba(0, 0, 0, 0.3);
+    background: rgba(0, 0, 0, 0.05);
+    color: #333;
 }
 
 .submit-btn {
-    background-color: #4CAF50;
-    color: #fff;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 16px;
+    background: transparent;
+    border: 2px solid;
+    border-image: linear-gradient(45deg, #00ff00, #00ffff) 1;
+    box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
 }
 
 .submit-btn:hover {
-    background-color: #45a049;
+    animation: glow-pulse 1s infinite;
 }
 
 .back-btn {
-    background-color: #ccc;
-    color: #333;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 5px;
-    cursor: pointer;
-    margin-top: 10px;
+    background: transparent;
+    border: 2px solid;
+    border-image: linear-gradient(45deg, #ff4444, #ff00ff) 1;
+    box-shadow: 0 0 10px rgba(255, 68, 68, 0.5);
 }
 
-.back-btn:hover {
-    background-color: #bbb;
-}
-
-.authorization-modal, .view-attendance-modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-}
-
-.modal-content {
-    background-color: #fff;
-    padding: 20px;
-    border-radius: 10px;
-    width: 80%;
-    max-width: 800px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-    color: #333;
-    max-height: 80vh;
-    overflow-y: auto;
-}
-
-.modal-content h2 {
-    margin-top: 0;
-    font-size: 24px;
-}
-
+/* Tables */
 #student-list, #attendance-list {
     width: 100%;
     border-collapse: collapse;
@@ -253,23 +399,37 @@ form input {
 
 #student-list th, #student-list td, #attendance-list th, #attendance-list td {
     padding: 10px;
-    border: 1px solid #ddd;
+    border: 1px solid rgba(255, 255, 255, 0.2);
     text-align: left;
 }
 
+body.light-mode #student-list th, body.light-mode #student-list td,
+body.light-mode #attendance-list th, body.light-mode #attendance-list td {
+    border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
 #student-list th, #attendance-list th {
-    background-color: #4CAF50;
-    color: white;
+    background: linear-gradient(45deg, #00ffff, #ff00ff);
+    color: #fff;
 }
 
 #student-list tr:nth-child(even), #attendance-list tr:nth-child(even) {
-    background-color: #f2f2f2;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+body.light-mode #student-list tr:nth-child(even), body.light-mode #attendance-list tr:nth-child(even) {
+    background: rgba(0, 0, 0, 0.05);
 }
 
 #student-list tr:hover, #attendance-list tr:hover {
-    background-color: #ddd;
+    background: rgba(255, 255, 255, 0.2);
 }
 
+body.light-mode #student-list tr:hover, body.light-mode #attendance-list tr:hover {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+/* Filter Container */
 .filter-container {
     margin-bottom: 20px;
 }
@@ -282,6 +442,14 @@ form input {
 .filter-container input {
     padding: 8px;
     margin-right: 20px;
-    border: 1px solid #ddd;
+    border: 1px solid rgba(255, 255, 255, 0.3);
     border-radius: 5px;
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+body.light-mode .filter-container input {
+    border: 1px solid rgba(0, 0, 0, 0.3);
+    background: rgba(0, 0, 0, 0.05);
+    color: #333;
 }

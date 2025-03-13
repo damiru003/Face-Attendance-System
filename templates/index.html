@@ -5,54 +5,69 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI-Powered Face Recognition Attendance</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400&display=swap" rel="stylesheet">
 </head>
-<body>
+<body class="dark-mode">
+    <!-- Background with animated stars -->
+    <div class="cosmic-background">
+        <div class="stars"></div>
+        <div class="stars"></div>
+        <div class="stars"></div>
+    </div>
+
+    <!-- Dark/Light Mode Toggle -->
+    <div class="mode-toggle">
+        <button id="mode-toggle-btn" onclick="toggleMode()">
+            <span class="icon">🌙</span>
+        </button>
+    </div>
+
     <div class="container">
         <!-- Sidebar -->
         <div class="sidebar">
-            <h2>AI Dashboard</h2>
+            <h2 class="glow-text">AI Dashboard</h2>
             <ul>
-                <li><a href="#" onclick="showRegistrationForm()">Student Registration</a></li>
-                <li><a href="#" onclick="authorizeStudents()">View/Authorize Students</a></li>
-                <li><a href="#" onclick="startAttendance()">Mark Attendance</a></li>
-                <li><a href="#" onclick="viewAttendance()">Attendance Details</a></li>
+                <li><a href="#" onclick="showRegistrationForm()" class="glow-hover">Student Registration</a></li>
+                <li><a href="#" onclick="authorizeStudents()" class="glow-hover">View/Authorize Students</a></li>
+                <li><a href="#" onclick="startAttendance()" class="glow-hover">Mark Attendance</a></li>
+                <li><a href="#" onclick="viewAttendance()" class="glow-hover">Attendance Details</a></li>
             </ul>
         </div>
 
         <!-- Main Content -->
         <div class="main-content">
-            <h1>AI-Powered Face Recognition Attendance</h1>
-            <p>Register students, manage attendance, and integrate AI for seamless recognition.</p>
+            <h1 class="glow-text">AI-Powered Face Recognition Attendance</h1>
+            <p class="sub-text">Register students, manage attendance, and integrate AI for seamless recognition.</p>
             <div class="button-container">
-                <button class="action-btn" onclick="showRegistrationForm()">Register Students <span>👤+</span></button>
-                <button class="action-btn" onclick="authorizeStudents()">Authorize Students <span>👥</span></button>
-                <button class="action-btn" onclick="startAttendance()">Mark Attendance <span>📸</span></button>
-                <button class="action-btn" onclick="viewAttendance()">View Attendance <span>📋</span></button>
+                <button class="action-btn neon-glow" onclick="showRegistrationForm()">Register Students <span>👤+</span></button>
+                <button class="action-btn neon-glow" onclick="authorizeStudents()">Authorize Students <span>👥</span></button>
+                <button class="action-btn neon-glow" onclick="startAttendance()">Mark Attendance <span>📸</span></button>
+                <button class="action-btn neon-glow" onclick="viewAttendance()">View Attendance <span>📋</span></button>
             </div>
             <div class="attendance-log">
-                <h2>Attendance Log</h2>
-                <div id="log-content">
+                <h2 class="glow-text">Attendance Log</h2>
+                <div id="log-content" class="log-box">
                     {% if logs %}
                         {% for log in logs %}
-                            <p>{{ log }}</p>
+                            <p class="log-entry">{{ log }}</p>
                         {% endfor %}
                     {% else %}
-                        <p>No attendance logs yet.</p>
+                        <p class="log-entry">No attendance logs yet.</p>
                     {% endif %}
                 </div>
             </div>
             <!-- Attendance Camera Feed (Hidden by default) -->
             <div id="attendance-camera" class="attendance-camera" style="display: none;">
                 <video id="attendance-video" width="400" height="400" autoplay></video>
-                <p id="attendance-status"></p>
-                <button class="action-btn" onclick="stopAttendance()">Stop Attendance</button>
+                <p id="attendance-status" class="status-text"></p>
+                <button class="action-btn neon-glow" onclick="stopAttendance()">Stop Attendance</button>
             </div>
         </div>
 
         <!-- Registration Form (Hidden by default) -->
-        <div id="registration-form" class="registration-form" style="display: none;">
-            <div class="form-container">
-                <h2>Student Registration</h2>
+        <div id="registration-form" class="modal teleport" style="display: none;">
+            <div class="modal-content">
+                <h2 class="glow-text">Student Registration</h2>
                 <div class="webcam-preview">
                     <video id="video" width="300" height="300" autoplay></video>
                     <canvas id="canvas" width="300" height="300" style="display: none;"></canvas>
@@ -66,18 +81,18 @@
                     <input type="tel" id="phone" name="phone" required>
                     <label for="class">Class:</label>
                     <input type="text" id="class" name="class" required>
-                    <button type="submit" class="submit-btn">Submit Registration</button>
+                    <button type="submit" class="submit-btn neon-glow">Submit Registration</button>
                 </form>
-                <button class="back-btn" onclick="hideRegistrationForm()">Back to Home</button>
-                <p id="successMessage" style="display: none; color: green;">Registration successful!</p>
-                <p id="errorMessage" style="display: none; color: red;"></p>
+                <button class="back-btn neon-glow" onclick="hideRegistrationForm()">Back to Home</button>
+                <p id="successMessage" style="display: none; color: #00ff00;">Registration successful!</p>
+                <p id="errorMessage" style="display: none; color: #ff4444;"></p>
             </div>
         </div>
 
         <!-- Authorization Modal (Hidden by default) -->
-        <div id="authorization-modal" class="authorization-modal" style="display: none;">
+        <div id="authorization-modal" class="modal teleport" style="display: none;">
             <div class="modal-content">
-                <h2>Authorize Students</h2>
+                <h2 class="glow-text">Authorize Students</h2>
                 <table id="student-list">
                     <thead>
                         <tr>
@@ -93,14 +108,14 @@
                         <!-- Students will be populated here -->
                     </tbody>
                 </table>
-                <button class="back-btn" onclick="hideAuthorizationModal()">Close</button>
+                <button class="back-btn neon-glow" onclick="hideAuthorizationModal()">Close</button>
             </div>
         </div>
 
         <!-- View Attendance Modal (Hidden by default) -->
-        <div id="view-attendance-modal" class="view-attendance-modal" style="display: none;">
+        <div id="view-attendance-modal" class="modal teleport" style="display: none;">
             <div class="modal-content">
-                <h2>Attendance Details</h2>
+                <h2 class="glow-text">Attendance Details</h2>
                 <div class="filter-container">
                     <label for="name-filter">Filter by Name:</label>
                     <input type="text" id="name-filter" onkeyup="filterAttendance()" placeholder="Enter name...">
@@ -119,7 +134,7 @@
                         <!-- Attendance records will be populated here -->
                     </tbody>
                 </table>
-                <button class="back-btn" onclick="hideViewAttendanceModal()">Close</button>
+                <button class="back-btn neon-glow" onclick="hideViewAttendanceModal()">Close</button>
             </div>
         </div>
     </div>
@@ -134,14 +149,21 @@
         let registrationStream = null;
         let attendanceStream = null;
         let attendanceInterval;
-        let allAttendanceRecords = []; // Store all records for filtering
+        let allAttendanceRecords = [];
+
+        // Dark/Light Mode Toggle
+        function toggleMode() {
+            const body = document.body;
+            const toggleBtn = document.getElementById('mode-toggle-btn');
+            body.classList.toggle('dark-mode');
+            body.classList.toggle('light-mode');
+            toggleBtn.innerHTML = body.classList.contains('dark-mode') ? '<span class="icon">🌙</span>' : '<span class="icon">☀️</span>';
+        }
 
         // Show registration form and start webcam
         function showRegistrationForm() {
             document.getElementById('registration-form').style.display = 'flex';
             document.querySelector('.main-content').style.display = 'none';
-            document.getElementById('successMessage').style.display = 'none';
-            document.getElementById('errorMessage').style.display = 'none';
 
             if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
                 navigator.mediaDevices.getUserMedia({ video: true })
@@ -185,7 +207,7 @@
                     if (data.success) {
                         document.getElementById('successMessage').style.display = 'block';
                         document.getElementById('errorMessage').style.display = 'none';
-                        setTimeout(hideRegistrationForm, 2000); // Hide after 2 seconds
+                        setTimeout(hideRegistrationForm, 2000);
                         this.reset();
                     } else {
                         document.getElementById('errorMessage').style.display = 'block';
@@ -230,7 +252,7 @@
             document.querySelector('.button-container').style.display = 'flex';
             document.querySelector('.attendance-log').style.display = 'block';
             attendanceStatus.innerText = "";
-            clearInterval(attendanceInterval); // Stop the recognition interval
+            clearInterval(attendanceInterval);
         }
 
         // Start attendance recognition
@@ -250,7 +272,7 @@
                     .then(data => {
                         if (data.log) {
                             let logContent = document.getElementById('log-content');
-                            logContent.innerHTML = data.log.map(log => `<p>${log}</p>`).join('') || '<p>No attendance logs yet.</p>';
+                            logContent.innerHTML = data.log.map(log => `<p class="log-entry">${log}</p>`).join('') || '<p class="log-entry">No attendance logs yet.</p>';
                             attendanceStatus.innerText = data.status || "";
                         }
                     })
@@ -258,7 +280,7 @@
                         attendanceStatus.innerText = "Error during attendance: " + err.message;
                     });
                 }
-            }, 1000); // Check every second
+            }, 1000);
         }
 
         // Show authorization modal and load students
