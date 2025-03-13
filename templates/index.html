@@ -13,9 +13,9 @@
             <h2>AI Dashboard</h2>
             <ul>
                 <li><a href="#" onclick="showRegistrationForm()">Student Registration</a></li>
-                <li><a href="#">View/Authorize Students</a></li>
+                <li><a href="#" onclick="authorizeStudents()">View/Authorize Students</a></li>
                 <li><a href="#" onclick="startAttendance()">Mark Attendance</a></li>
-                <li><a href="#">Attendance Details</a></li>
+                <li><a href="#" onclick="viewAttendance()">Attendance Details</a></li>
             </ul>
         </div>
 
@@ -73,6 +73,55 @@
                 <p id="errorMessage" style="display: none; color: red;"></p>
             </div>
         </div>
+
+        <!-- Authorization Modal (Hidden by default) -->
+        <div id="authorization-modal" class="authorization-modal" style="display: none;">
+            <div class="modal-content">
+                <h2>Authorize Students</h2>
+                <table id="student-list">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>Class</th>
+                            <th>Registered</th>
+                            <th>Authorized</th>
+                        </tr>
+                    </thead>
+                    <tbody id="student-table-body">
+                        <!-- Students will be populated here -->
+                    </tbody>
+                </table>
+                <button class="back-btn" onclick="hideAuthorizationModal()">Close</button>
+            </div>
+        </div>
+
+        <!-- View Attendance Modal (Hidden by default) -->
+        <div id="view-attendance-modal" class="view-attendance-modal" style="display: none;">
+            <div class="modal-content">
+                <h2>Attendance Details</h2>
+                <div class="filter-container">
+                    <label for="name-filter">Filter by Name:</label>
+                    <input type="text" id="name-filter" onkeyup="filterAttendance()" placeholder="Enter name...">
+                    <label for="date-filter">Filter by Date:</label>
+                    <input type="date" id="date-filter" onchange="filterAttendance()">
+                </div>
+                <table id="attendance-list">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Time</th>
+                            <th>Location</th>
+                        </tr>
+                    </thead>
+                    <tbody id="attendance-table-body">
+                        <!-- Attendance records will be populated here -->
+                    </tbody>
+                </table>
+                <button class="back-btn" onclick="hideViewAttendanceModal()">Close</button>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -82,65 +131,72 @@
         let context = canvas.getContext('2d');
         let attendanceVideo = document.getElementById('attendance-video');
         let attendanceStatus = document.getElementById('attendance-status');
+        let registrationStream = null;
         let attendanceStream = null;
+        let attendanceInterval;
+        let allAttendanceRecords = []; // Store all records for filtering
 
-        // Access webcam for registration
-        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-            navigator.mediaDevices.getUserMedia({ video: true })
-                .then(stream => {
-                    video.srcObject = stream;
-                })
-                .catch(err => {
-                    console.error("Webcam access error for registration: ", err);
-                    alert("Could not access webcam for registration.");
-                });
-        }
-
-        // Show registration form
+        // Show registration form and start webcam
         function showRegistrationForm() {
             document.getElementById('registration-form').style.display = 'flex';
             document.querySelector('.main-content').style.display = 'none';
             document.getElementById('successMessage').style.display = 'none';
             document.getElementById('errorMessage').style.display = 'none';
+
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                navigator.mediaDevices.getUserMedia({ video: true })
+                    .then(stream => {
+                        registrationStream = stream;
+                        video.srcObject = stream;
+                    })
+                    .catch(err => {
+                        console.error("Webcam access error for registration: ", err);
+                        alert("Could not access webcam for registration.");
+                    });
+            }
         }
 
-        // Hide registration form
+        // Hide registration form and stop webcam
         function hideRegistrationForm() {
             document.getElementById('registration-form').style.display = 'none';
             document.querySelector('.main-content').style.display = 'block';
-            if (video.srcObject) {
-                video.srcObject.getTracks().forEach(track => track.stop());
+            if (registrationStream) {
+                registrationStream.getTracks().forEach(track => track.stop());
+                video.srcObject = null;
+                registrationStream = null;
             }
         }
 
         // Handle registration form submission
         document.getElementById('registrationForm').addEventListener('submit', function(e) {
             e.preventDefault();
-            context.drawImage(video, 0, 0, 300, 300);
-            let imageData = canvas.toDataURL('image/jpeg');
-            let formData = new FormData(this);
-            formData.append('image', imageData);
+            if (registrationStream) {
+                context.drawImage(video, 0, 0, 300, 300);
+                let imageData = canvas.toDataURL('image/jpeg');
+                let formData = new FormData(this);
+                formData.append('image', imageData);
 
-            fetch('/register_student', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    document.getElementById('successMessage').style.display = 'block';
-                    document.getElementById('errorMessage').style.display = 'none';
-                    setTimeout(hideRegistrationForm, 2000); // Hide after 2 seconds
-                    this.reset();
-                } else {
+                fetch('/register_student', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('successMessage').style.display = 'block';
+                        document.getElementById('errorMessage').style.display = 'none';
+                        setTimeout(hideRegistrationForm, 2000); // Hide after 2 seconds
+                        this.reset();
+                    } else {
+                        document.getElementById('errorMessage').style.display = 'block';
+                        document.getElementById('errorMessage').innerText = data.message;
+                    }
+                })
+                .catch(err => {
                     document.getElementById('errorMessage').style.display = 'block';
-                    document.getElementById('errorMessage').innerText = data.message;
-                }
-            })
-            .catch(err => {
-                document.getElementById('errorMessage').style.display = 'block';
-                document.getElementById('errorMessage').innerText = "Error submitting form: " + err.message;
-            });
+                    document.getElementById('errorMessage').innerText = "Error submitting form: " + err.message;
+                });
+            }
         });
 
         // Start attendance
@@ -167,6 +223,8 @@
         function stopAttendance() {
             if (attendanceStream) {
                 attendanceStream.getTracks().forEach(track => track.stop());
+                attendanceVideo.srcObject = null;
+                attendanceStream = null;
             }
             document.getElementById('attendance-camera').style.display = 'none';
             document.querySelector('.button-container').style.display = 'flex';
@@ -175,38 +233,145 @@
             clearInterval(attendanceInterval); // Stop the recognition interval
         }
 
-        let attendanceInterval;
+        // Start attendance recognition
         function startAttendanceRecognition() {
             attendanceInterval = setInterval(() => {
-                context.drawImage(attendanceVideo, 0, 0, 400, 400);
-                let imageData = canvas.toDataURL('image/jpeg');
-                let formData = new FormData();
-                formData.append('image', imageData);
+                if (attendanceStream) {
+                    context.drawImage(attendanceVideo, 0, 0, 400, 400);
+                    let imageData = canvas.toDataURL('image/jpeg');
+                    let formData = new FormData();
+                    formData.append('image', imageData);
 
-                fetch('/mark_attendance', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.log) {
-                        let logContent = document.getElementById('log-content');
-                        logContent.innerHTML = data.log.map(log => `<p>${log}</p>`).join('') || '<p>No attendance logs yet.</p>';
-                        attendanceStatus.innerText = data.status || "";
-                    }
-                })
-                .catch(err => {
-                    attendanceStatus.innerText = "Error during attendance: " + err.message;
-                });
+                    fetch('/mark_attendance', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.log) {
+                            let logContent = document.getElementById('log-content');
+                            logContent.innerHTML = data.log.map(log => `<p>${log}</p>`).join('') || '<p>No attendance logs yet.</p>';
+                            attendanceStatus.innerText = data.status || "";
+                        }
+                    })
+                    .catch(err => {
+                        attendanceStatus.innerText = "Error during attendance: " + err.message;
+                    });
+                }
             }, 1000); // Check every second
         }
 
+        // Show authorization modal and load students
         function authorizeStudents() {
-            alert("Authorize Students functionality to be implemented.");
+            document.getElementById('authorization-modal').style.display = 'flex';
+            document.querySelector('.main-content').style.display = 'none';
+
+            fetch('/get_students')
+                .then(response => response.json())
+                .then(data => {
+                    let tableBody = document.getElementById('student-table-body');
+                    tableBody.innerHTML = '';
+                    data.students.forEach(student => {
+                        let row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${student.Name}</td>
+                            <td>${student.Email}</td>
+                            <td>${student.Phone}</td>
+                            <td>${student.Class}</td>
+                            <td>${student.RegistrationTime}</td>
+                            <td>
+                                <input type="checkbox" ${student.Authorized ? 'checked' : ''} 
+                                       onchange="updateAuthorization('${student.Name}', this.checked)">
+                            </td>
+                        `;
+                        tableBody.appendChild(row);
+                    });
+                })
+                .catch(err => {
+                    console.error("Error loading students: ", err);
+                    alert("Failed to load students.");
+                });
         }
 
+        // Hide authorization modal
+        function hideAuthorizationModal() {
+            document.getElementById('authorization-modal').style.display = 'none';
+            document.querySelector('.main-content').style.display = 'block';
+        }
+
+        // Update student authorization status
+        function updateAuthorization(name, authorized) {
+            fetch('/update_authorization', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ name: name, authorized: authorized })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    alert(data.message);
+                }
+            })
+            .catch(err => {
+                console.error("Error updating authorization: ", err);
+                alert("Failed to update authorization.");
+            });
+        }
+
+        // Show view attendance modal and load attendance records
         function viewAttendance() {
-            alert("View Attendance functionality to be implemented.");
+            document.getElementById('view-attendance-modal').style.display = 'flex';
+            document.querySelector('.main-content').style.display = 'none';
+
+            fetch('/get_attendance')
+                .then(response => response.json())
+                .then(data => {
+                    allAttendanceRecords = data.attendance;
+                    populateAttendanceTable(allAttendanceRecords);
+                })
+                .catch(err => {
+                    console.error("Error loading attendance: ", err);
+                    alert("Failed to load attendance records.");
+                });
+        }
+
+        // Hide view attendance modal
+        function hideViewAttendanceModal() {
+            document.getElementById('view-attendance-modal').style.display = 'none';
+            document.querySelector('.main-content').style.display = 'block';
+            document.getElementById('name-filter').value = '';
+            document.getElementById('date-filter').value = '';
+        }
+
+        // Populate attendance table
+        function populateAttendanceTable(records) {
+            let tableBody = document.getElementById('attendance-table-body');
+            tableBody.innerHTML = '';
+            records.forEach(record => {
+                let row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${record.Name}</td>
+                    <td>${record.Time}</td>
+                    <td>${record.Location}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        // Filter attendance records
+        function filterAttendance() {
+            let nameFilter = document.getElementById('name-filter').value.toLowerCase();
+            let dateFilter = document.getElementById('date-filter').value;
+
+            let filteredRecords = allAttendanceRecords.filter(record => {
+                let matchesName = record.Name.toLowerCase().includes(nameFilter);
+                let matchesDate = dateFilter ? record.Time.startsWith(dateFilter) : true;
+                return matchesName && matchesDate;
+            });
+
+            populateAttendanceTable(filteredRecords);
         }
     </script>
 </body>
