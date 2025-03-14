@@ -68,22 +68,26 @@
         <div id="registration-form" class="modal teleport" style="display: none;">
             <div class="modal-content">
                 <h2 class="glow-text">Student Registration</h2>
-                <div class="webcam-preview">
-                    <video id="video" width="300" height="300" autoplay></video>
-                    <canvas id="canvas" width="300" height="300" style="display: none;"></canvas>
+                <div class="registration-container">
+                    <div class="webcam-preview">
+                        <video id="video" width="300" height="300" autoplay></video>
+                        <canvas id="canvas" width="300" height="300" style="display: none;"></canvas>
+                    </div>
+                    <form id="registrationForm">
+                        <label for="name">Name:</label>
+                        <input type="text" id="name" name="name" required>
+                        <label for="email">Email:</label>
+                        <input type="email" id="email" name="email" required>
+                        <label for="phone">Phone Number:</label>
+                        <input type="tel" id="phone" name="phone" required>
+                        <label for="class">Class:</label>
+                        <input type="text" id="class" name="class" required>
+                    </form>
+                    <div class="button-group">
+                        <button type="submit" form="registrationForm" class="submit-btn neon-glow">Submit Registration</button>
+                        <button class="back-btn neon-glow" onclick="hideRegistrationForm()">Back to Home</button>
+                    </div>
                 </div>
-                <form id="registrationForm">
-                    <label for="name">Name:</label>
-                    <input type="text" id="name" name="name" required>
-                    <label for="email">Email:</label>
-                    <input type="email" id="email" name="email" required>
-                    <label for="phone">Phone Number:</label>
-                    <input type="tel" id="phone" name="phone" required>
-                    <label for="class">Class:</label>
-                    <input type="text" id="class" name="class" required>
-                    <button type="submit" class="submit-btn neon-glow">Submit Registration</button>
-                </form>
-                <button class="back-btn neon-glow" onclick="hideRegistrationForm()">Back to Home</button>
                 <p id="successMessage" style="display: none; color: #00ff00;">Registration successful!</p>
                 <p id="errorMessage" style="display: none; color: #ff4444;"></p>
             </div>
@@ -348,14 +352,34 @@
             document.querySelector('.main-content').style.display = 'none';
 
             fetch('/get_attendance')
-                .then(response => response.json())
-                .then(data => {
-                    allAttendanceRecords = data.attendance;
-                    populateAttendanceTable(allAttendanceRecords);
+                .then(response => {
+                    console.log("Fetch response status:", response.status);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.text(); // Get raw text first to debug
+                })
+                .then(text => {
+                    console.log("Raw response text:", text);
+                    try {
+                        const data = JSON.parse(text);
+                        console.log("Parsed attendance data:", data);
+                        if (!data || typeof data.attendance === 'undefined') {
+                            throw new Error("Invalid response format: 'attendance' key missing");
+                        }
+                        allAttendanceRecords = data.attendance || [];
+                        console.log("Processed attendance records:", allAttendanceRecords);
+                        populateAttendanceTable(allAttendanceRecords);
+                    } catch (e) {
+                        console.error("JSON parsing error:", e, "Raw text:", text);
+                        throw new Error("Invalid JSON response");
+                    }
                 })
                 .catch(err => {
                     console.error("Error loading attendance: ", err);
-                    alert("Failed to load attendance records.");
+                    let errorMessage = "Failed to load attendance records: " + err.message;
+                    alert(errorMessage);
+                    populateAttendanceTable([]); // Show empty table on error
                 });
         }
 
@@ -371,14 +395,23 @@
         function populateAttendanceTable(records) {
             let tableBody = document.getElementById('attendance-table-body');
             tableBody.innerHTML = '';
+            if (!records || records.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="3">No attendance records found.</td></tr>';
+                return;
+            }
             records.forEach(record => {
                 let row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${record.Name}</td>
-                    <td>${record.Time}</td>
-                    <td>${record.Location}</td>
-                `;
-                tableBody.appendChild(row);
+                try {
+                    row.innerHTML = `
+                        <td>${record.Name || 'N/A'}</td>
+                        <td>${record.Time || 'N/A'}</td>
+                        <td>${record.Location || 'N/A'}</td>
+                    `;
+                    tableBody.appendChild(row);
+                } catch (e) {
+                    console.error("Error populating row:", e, record);
+                    tableBody.innerHTML = '<tr><td colspan="3">Error processing records.</td></tr>';
+                }
             });
         }
 

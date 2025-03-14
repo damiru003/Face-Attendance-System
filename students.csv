@@ -1,6 +1,6 @@
 Name,Email,Phone,Class,RegistrationTime,Authorized
-sdc,d@gmil.com,123,431,2025-03-11 11:46:10,True
-sdc,d@gmil.com,123,431,2025-03-11 11:46:13,True
+sdc,d@gmil.com,123,431,2025-03-11 11:46:10,False
+sdc,d@gmil.com,123,431,2025-03-11 11:46:13,False
 tom,t@gmail.com,234,3,2025-03-12 20:49:44,False
 tomm,fdf@gmail.com,9878,3,2025-03-13 20:00:31,True
 Damiru Gamage,gamagedamiru@gmail.com,775053406,12,2025-03-13 23:50:45,True

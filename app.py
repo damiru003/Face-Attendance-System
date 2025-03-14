@@ -9,6 +9,7 @@ import base64
 import smtplib
 from email.mime.text import MIMEText
 import logging
+import numpy as np
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -49,8 +50,11 @@ def index():
         try:
             df = pd.read_csv("attendance.csv")
             logs = [f"{row['Name']} at {row['Time']} in {row['Location']}" for _, row in df.iterrows()]
+            logger.info(f"Loaded {len(logs)} logs for index page.")
         except Exception as e:
-            logger.error(f"Error reading attendance.csv for index: {e}")
+            logger.error(f"Error reading attendance.csv for index: {str(e)}")
+    else:
+        logger.warning("attendance.csv not found for index page.")
     return render_template('index.html', logs=logs)
 
 # Route to get the list of students
@@ -62,9 +66,10 @@ def get_students():
             students = students_df.to_dict('records')
         else:
             students = []
+        logger.info(f"Returning {len(students)} students.")
         return jsonify({"students": students})
     except Exception as e:
-        logger.error(f"Error getting students: {e}")
+        logger.error(f"Error getting students: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 # Route to get attendance records
@@ -73,6 +78,14 @@ def get_attendance():
     try:
         if os.path.exists("attendance.csv"):
             attendance_df = pd.read_csv("attendance.csv")
+            # Ensure the CSV has the expected columns
+            expected_columns = ['Name', 'Time', 'Location']
+            if not all(col in attendance_df.columns for col in expected_columns):
+                logger.error(f"attendance.csv missing expected columns: {attendance_df.columns}")
+                return jsonify({"attendance": []})
+
+            # Clean NaN values by replacing with None (JSON-compatible null)
+            attendance_df = attendance_df.replace({np.nan: None})
             attendance = attendance_df.to_dict('records')
             logger.info(f"Successfully loaded {len(attendance)} attendance records.")
         else:
@@ -80,8 +93,8 @@ def get_attendance():
             logger.warning("attendance.csv not found, returning empty list.")
         return jsonify({"attendance": attendance})
     except Exception as e:
-        logger.error(f"Error getting attendance: {e}")
-        return jsonify({"error": str(e)}), 500
+        logger.error(f"Error getting attendance: {str(e)}")
+        return jsonify({"attendance": []}), 200  # Return empty list instead of error
 
 # Route to update student authorization
 @app.route('/update_authorization', methods=['POST'])
@@ -97,13 +110,16 @@ def update_authorization():
             if name in students_df['Name'].values:
                 students_df.loc[students_df['Name'] == name, 'Authorized'] = authorized
                 students_df.to_csv(students_file, index=False)
+                logger.info(f"Updated authorization for {name} to {authorized}.")
                 return jsonify({"success": True})
             else:
+                logger.warning(f"Student {name} not found for authorization update.")
                 return jsonify({"success": False, "message": "Student not found."})
         else:
+            logger.warning("students.csv not found for authorization update.")
             return jsonify({"success": False, "message": "No students registered."})
     except Exception as e:
-        logger.error(f"Error updating authorization: {e}")
+        logger.error(f"Error updating authorization: {str(e)}")
         return jsonify({"success": False, "message": f"Error updating authorization: {str(e)}"})
 
 # Route to handle student registration
@@ -123,6 +139,7 @@ def register_student():
         encodings = face_recognition.face_encodings(image)
         if not encodings:
             os.remove("temp.jpg")
+            logger.warning("No face detected in the image during registration.")
             return jsonify({"success": False, "message": "No face detected in the image. Please try again."})
         encoding = encodings[0]
 
@@ -149,11 +166,12 @@ def register_student():
         students_df.to_csv(students_file, index=False)
 
         os.remove("temp.jpg")
+        logger.info(f"Successfully registered student: {name}")
         return jsonify({"success": True, "message": "Student registered successfully!"})
     except Exception as e:
         if os.path.exists("temp.jpg"):
             os.remove("temp.jpg")
-        logger.error(f"Error during registration: {e}")
+        logger.error(f"Error during registration: {str(e)}")
         return jsonify({"success": False, "message": f"Error during registration: {str(e)}"})
 
 # Route to handle attendance marking
@@ -173,7 +191,10 @@ def mark_attendance():
         if os.path.exists("attendance.csv"):
             attendance_df = pd.read_csv("attendance.csv")
         else:
+            # Create the file with headers if it doesn't exist
             attendance_df = pd.DataFrame(columns=['Name', 'Time', 'Location'])
+            attendance_df.to_csv("attendance.csv", index=False)
+            logger.info("Created new attendance.csv file.")
 
         if os.path.exists("students.csv"):
             students_df = pd.read_csv("students.csv")
@@ -193,12 +214,13 @@ def mark_attendance():
                     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                     location = "Office"
 
-                    if name not in attendance_df['Name'].values:
-                        new_entry = pd.DataFrame([{'Name': name, 'Time': current_time, 'Location': location}])
-                        attendance_df = pd.concat([attendance_df, new_entry], ignore_index=True)
-                        attendance_df.to_csv("attendance.csv", index=False)
-                        logs.append(f"{name} at {current_time} in {location}")
-                        send_email(name, current_time)
+                    # Allow multiple attendance entries for the same student
+                    new_entry = pd.DataFrame([{'Name': name, 'Time': current_time, 'Location': location}])
+                    attendance_df = pd.concat([attendance_df, new_entry], ignore_index=True)
+                    attendance_df.to_csv("attendance.csv", index=False)
+                    logs.append(f"{name} at {current_time} in {location}")
+                    logger.info(f"Attendance logged for {name} at {current_time}")
+                    send_email(name, current_time)
                 else:
                     logs.append(f"{name} is not authorized.")
             else:
@@ -209,7 +231,7 @@ def mark_attendance():
     except Exception as e:
         if os.path.exists("temp.jpg"):
             os.remove("temp.jpg")
-        logger.error(f"Error during attendance marking: {e}")
+        logger.error(f"Error during attendance marking: {str(e)}")
         return jsonify({"log": [], "status": f"Error: {str(e)}"})
 
 if __name__ == "__main__":
